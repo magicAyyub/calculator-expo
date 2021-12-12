@@ -1,21 +1,29 @@
-import { StatusBar } from 'expo-status-bar';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-export default function App() {
+import HomeScreen from './screens/HomeScreen';
+import VATPriceScreen from './screens/VATPriceScreen';
+import SteelReinforcementScreen from './screens/SteelReinforcementScreen';
+
+export type RootStackParamList = {
+  Home: undefined;
+  VATPrice: undefined;
+  SteelReinforcement: undefined;
+};
+
+const Stack = createNativeStackNavigator();
+
+function App() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <NavigationContainer>
+      <Stack.Navigator>
+        <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Accueil' }}/>
+        <Stack.Screen name="VATPrice" component={VATPriceScreen} options={{ title: 'Calcul de prix TTC' }}/>
+        <Stack.Screen name="SteelReinforcement" component={SteelReinforcementScreen} options={{ title: 'Calcul de ferraillage' }}/>
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+export default App;
