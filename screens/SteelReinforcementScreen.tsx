@@ -79,7 +79,7 @@ function SteelReinforcementScreen() {
 
             if (sectionsOneType > floatSteelSection) {
                 tmpChoices.push(
-                    `${intBedsCount * intColumnsCount} colonnes de ${diameter} mm | `+
+                    `${intBedsCount * intColumnsCount} barres de ${diameter} mm | `+
                     `(${intBedsCount * intColumnsCount} x ${section} = ${sectionsOneType.toFixed(3)} cm²)`
                 );
                 break;function checkSameColumns(current: {[key: string]: {}}) {
@@ -155,7 +155,7 @@ function SteelReinforcementScreen() {
                     continue;
                 }
                 
-                choicesText += `${intColumnsCount} colonnes de ${value['diameter']} mm|`;
+                choicesText += `${intColumnsCount} barres de ${value['diameter']} mm|`;
                 choicesText += `(${intColumnsCount} x ${value['section']} = ${value['sections'].toFixed(3)} cm²)|`
             }
 
