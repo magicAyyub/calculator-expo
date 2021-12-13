@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ScrollView, SafeAreaView, Dimensions } from 'react-native';
 
 const diameters = {
     5: {
@@ -48,17 +48,17 @@ const diameters = {
     }
 };
 
-function objectIsEmpty(obj: {}) {
-    return obj
-           && Object.keys(obj).length === 0
-           && Object.getPrototypeOf(obj) === Object.prototype;
-}
+const screenWidth = Dimensions.get('window').width;
+const screenHeight = Dimensions.get('window').height;
 
 function SteelReinforcementScreen() {
     const [steelSectionValue, onChangeSteelSectionValue] = useState('');
     const [bedsCount, onChangeBedsCount] = useState('');
     const [columnsCount, onChangeColumnsCount] = useState('');
+    const [workLength, onChangeWorkLength] = useState('');
+    const [minBarDiameter, onChangeMinBarDiameter] = useState('');
     const [choices, setChoices] = useState<string[]>([]);
+    
 
     useEffect(() => {
         if (steelSectionValue === '' || bedsCount === '' || columnsCount === '') {
@@ -69,50 +69,72 @@ function SteelReinforcementScreen() {
         const floatSteelSection = parseFloat(steelSectionValue);
         const intBedsCount = parseInt(bedsCount);
         const intColumnsCount = parseInt(columnsCount);
+        const intWorkLength = parseInt(workLength);
+        const intMinBarDiameter = parseInt(minBarDiameter);
 
-        const tmpChoices = []
+        const tmpChoices: string[] = [];
 
-        for (const [diameter, values] of Object.entries(diameters)) {
-            const section = values['section'];
-
-            const sectionsOneType = section * intBedsCount * intColumnsCount;
-
-            if (sectionsOneType > floatSteelSection) {
-                tmpChoices.push(
-                    `${intBedsCount * intColumnsCount} barres de ${diameter} mm | `+
-                    `(${intBedsCount * intColumnsCount} x ${section} = ${sectionsOneType.toFixed(3)} cm²)`
-                );
-                break;function checkSameColumns(current: {[key: string]: {}}) {
-            let tmpCurrentValuesObj = null;
-            let tmpCurrentValuesObjSame = true;
-            let first = true;
-
-            for (const [key, values] of Object.entries<{[key: string]: {}}>(current)) {
-                if (key === 'sections') {
+        function getFirstChoiceSameBars() {
+            for (const [diameter, value] of Object.entries(diameters)) {
+                if (!isNaN(intMinBarDiameter) && parseInt(diameter) < intMinBarDiameter) {
                     continue;
                 }
 
-                if (first) {
-                    tmpCurrentValuesObj = values;
-                    first = false;
+                const section = value['section'];
+
+                const sectionsSameBars = section * intBedsCount * intColumnsCount;
+    
+                if (sectionsSameBars < floatSteelSection) {
+                    continue;
                 }
 
-                tmpCurrentValuesObjSame = tmpCurrentValuesObjSame
-                                          && JSON.stringify(values) === JSON.stringify(tmpCurrentValuesObj);
-                
+                const barsCount = intBedsCount * intColumnsCount;
+                const weight = value['weight'];
+
+                let barsWeight = NaN;
+                if (!isNaN(intWorkLength)) {
+                    barsWeight = intWorkLength * barsCount * weight;
+                }
+    
+                let firstChoiceText = (
+                    `${barsCount} barres de ${diameter} mm|`+
+                    `(${barsCount} x ${section} = ${sectionsSameBars.toFixed(3)} cm²)`
+                );
+
+                if (!isNaN(barsWeight)) {
+                    firstChoiceText += '|';
+                    firstChoiceText += (
+                        `(${intWorkLength} m x ${barsCount} barres x ${weight} kg = `
+                    );
+
+                    if (barsWeight > 1000) {
+                        firstChoiceText += `${barsWeight / 1000} t)`;
+                        return firstChoiceText;
+                    }
+
+                    firstChoiceText += `${barsWeight} kg)`;
+                    return firstChoiceText;
+                }
+
+                return firstChoiceText;
             }
 
-            return tmpCurrentValuesObjSame;
+            return '';
         }
-            }
-        }
+
+        const firstChoiceSameBars = getFirstChoiceSameBars();
+        tmpChoices.push(firstChoiceSameBars);
 
         if (intBedsCount === 1) {
+            if (firstChoiceSameBars === '') {
+                return;
+            }
+
             setChoices(tmpChoices);
             return;
         }
 
-        function checkSameColumns(current: {[key: string]: {}}) {
+        function checkSameBars(current: {[key: string]: {}}) {
             let tmpCurrentValuesObj = null;
             let tmpCurrentValuesObjSame = true;
             let first = true;
@@ -135,35 +157,6 @@ function SteelReinforcementScreen() {
             return tmpCurrentValuesObjSame;
         }
 
-        function getChoicesText() {
-            const current: {[key: string]: {}} = {};
-            const tmp: {
-                      [key: string]: any
-                      'sections': number
-                  } = { 'sections': Infinity };
-
-            loopChoices(0, intBedsCount, current, tmp);
-
-            let choicesText = '';
-
-            if (checkSameColumns(tmp)) {
-                return '';
-            }
-            
-            for (const [key, value] of Object.entries(tmp)) {
-                if (key === 'sections') {
-                    continue;
-                }
-                
-                choicesText += `${intColumnsCount} barres de ${value['diameter']} mm|`;
-                choicesText += `(${intColumnsCount} x ${value['section']} = ${value['sections'].toFixed(3)} cm²)|`
-            }
-
-            choicesText.substring(0, choicesText.length - 1);
-            choicesText += `Total : ${tmp['sections'].toFixed(3)} cm²`;
-            return choicesText;
-        }
-        
         function loopChoices(
             prevSections: number,
             remainingBedsCount: number,
@@ -183,7 +176,12 @@ function SteelReinforcementScreen() {
             }
 
             for (const [diameter, value] of Object.entries(diameters)) {
+                if (!isNaN(intMinBarDiameter) && parseInt(diameter) < intMinBarDiameter) {
+                    continue;
+                }
+
                 const section = value['section'];
+                const weight = value['weight'];
 
                 if (section > floatSteelSection) {
                     continue;
@@ -193,7 +191,8 @@ function SteelReinforcementScreen() {
                 current[remainingBedsCount] = {
                     diameter,
                     section,
-                    sections
+                    sections,
+                    weight
                 };
 
                 const currentSections = sections + prevSections; 
@@ -203,115 +202,186 @@ function SteelReinforcementScreen() {
             }
         }
 
-        const choicesText = getChoicesText();
+        function getSecondChoiceDifferentBars() {
+            const result: {
+                      [key: string]: any
+                      'sections': number
+                  } = { 'sections': Infinity };
 
-        if (choicesText !== '') {
-            tmpChoices.push(choicesText);
+            loopChoices(0, intBedsCount, {}, result);
+
+            let secondChoiceText = '';
+
+            if (checkSameBars(result)) {
+                return '';
+            }
+            
+            for (const [key, value] of Object.entries(result)) {
+                if (key === 'sections') {
+                    continue;
+                }
+                
+                secondChoiceText += `${intColumnsCount} barres de ${value['diameter']} mm|`;
+                secondChoiceText += `(${intColumnsCount} x ${value['section']} = ${value['sections'].toFixed(3)} cm²)|`
+
+            }
+
+            secondChoiceText.substring(0, secondChoiceText.length - 1);
+            secondChoiceText += `Total : ${result['sections'].toFixed(3)} cm²`;
+
+            return secondChoiceText;
+        }
+
+        const secondChoiceDifferentBars = getSecondChoiceDifferentBars();
+
+        if (secondChoiceDifferentBars !== '') {
+            tmpChoices.push(secondChoiceDifferentBars);
         }
 
         setChoices(tmpChoices);
 
-    }, [steelSectionValue, bedsCount, columnsCount]);
+    }, [steelSectionValue, bedsCount, columnsCount, workLength, minBarDiameter]);
 
-    return (
-        <SafeAreaView style={styles.container}>
-        <ScrollView scrollIndicatorInsets={{ right: 1 }}>
+    const renderForm = () => (
+        <View style={{
+            flex: 1,
+            ...styles.subcontainer,
+            paddingTop: 20,
+            paddingBottom: 20
+        }}>
+            <Text style={{
+                fontWeight: 'bold',
+                fontSize: 20
+            }}>Calcul de ferraillage</Text>
             <View style={{
-                flex: 1,
-                ...styles.subcontainer,
-                marginTop: 20
+                flexDirection: 'row',
             }}>
+                <Text style={{ width: 120, marginTop: 21, textAlign: 'right' }}>Section d'aciers</Text>
+                <TextInput
+                    style={styles.input}
+                    keyboardType='numeric'
+                    onChangeText={onChangeSteelSectionValue}
+                    value={steelSectionValue}
+                    placeholder="Section d'aciers"
+                />
+                <Text style={{ width: 40, marginTop: 21}}>cm²</Text>
+            </View>
+            <View style={{
+                flexDirection: 'row'
+            }}>
+                <Text style={{ width: 120, marginTop: 21, textAlign: 'right' }}>Nb de lits</Text>
+                <TextInput
+                    style={styles.input}
+                    keyboardType='number-pad'
+                    onChangeText={onChangeBedsCount}
+                    value={bedsCount}
+                    placeholder='Nb de lits'
+                />
+                <View style={{ width:40 }}></View>
+            </View>
+            <View style={{
+                flexDirection: 'row'
+            }}>
+                <Text style={{ width: 120, marginTop: 21, textAlign: 'right' }}>Nb de colonnes</Text>
+                <TextInput
+                    style={styles.input}
+                    keyboardType='number-pad'
+                    onChangeText={onChangeColumnsCount}
+                    value={columnsCount}
+                    placeholder='Nb de colonnes'
+                />
+                <View style={{ width:40 }}></View>
+            </View>
+            <View style={{
+                flexDirection: 'row'
+            }}>
+                <Text style={{ width: 120, marginTop: 13, textAlign: 'right' }}>Longueur de l'ouvrage</Text>
+                <TextInput
+                    style={styles.input}
+                    keyboardType='number-pad'
+                    onChangeText={onChangeWorkLength}
+                    value={workLength}
+                    placeholder="Longueur de l'ouvrage"
+                />
+                <Text style={{ width:40, marginTop: 21 }}>m</Text>
+            </View>
+            <View style={{
+                flexDirection: 'row'
+            }}>
+                <Text style={{ width: 120, marginTop: 13, textAlign: 'right' }}>Diamètre minimum</Text>
+                <TextInput
+                    style={styles.input}
+                    keyboardType='number-pad'
+                    onChangeText={onChangeMinBarDiameter}
+                    value={minBarDiameter}
+                    placeholder='Diamètre minimum'
+                />
+                <Text style={{ width:40, marginTop: 21 }}>mm</Text>
+            </View>
+        </View>
+    );
+
+    const renderResult = () => (
+        <View style={{
+            ...styles.subcontainer,
+            paddingTop: 20,
+        }}>
+            {choices.length ?
                 <Text style={{
                     fontWeight: 'bold',
                     fontSize: 20
-                }}>Calcul de ferraillage</Text>
-                <View style={{
-                    flexDirection: 'row'
-                }}>
-                    <Text style={{ width: 120, marginTop: 21, textAlign: 'right' }}>Section d'aciers :</Text>
-                    <TextInput
-                        style={styles.input}
-                        keyboardType='numeric'
-                        onChangeText={onChangeSteelSectionValue}
-                        value={steelSectionValue}
-                        placeholder="Section d'aciers"
-                    />
-                    <Text style={{ width: 40, marginTop: 20}}>cm²</Text>
+                }}>Choix</Text>
+            :
+                null
+            } 
+            {choices.map((item, i) => item.split('|').map((subitem, j) => (
+                <View key={j}>
+                    { j === 0 ?
+                        <View style={{
+                            flexDirection: 'row'
+                        }}>
+                            <Text style={{ width: 130, marginTop: 20, textAlign: 'right' }}>
+                                Choix {i+1} :
+                            </Text>
+                            <Text style={{
+                                height: 20,
+                                marginTop: 20,
+                                marginLeft: 12,
+                                paddingLeft: 10,
+                                width: workLength === '' ? 210 : 290
+                            }}>{subitem}</Text>
+                        </View>
+                    :
+                        <View style={{
+                            flexDirection: 'row'
+                        }}>
+                            <View style={{ width: 130 }}/>
+                            <Text style={{
+                                height: 20,
+                                marginLeft: 12,
+                                paddingLeft: 10,
+                                width: workLength === '' ? 210 : 290
+                            }}>{subitem.replace(/\./ig, ',')}</Text>
+                        </View>
+                    }
                 </View>
-                <View style={{
-                    flexDirection: 'row'
-                }}>
-                    <Text style={{ width: 120, marginTop: 21, textAlign: 'right' }}>Nb de lits :</Text>
-                    <TextInput
-                        style={styles.input}
-                        keyboardType='number-pad'
-                        onChangeText={onChangeBedsCount}
-                        value={bedsCount}
-                        placeholder='Nb de lits'
-                    />
-                    <View style={{ width:40 }}></View>
-                </View>
-                <View style={{
-                    flexDirection: 'row'
-                }}>
-                    <Text style={{ width: 120, marginTop: 21, textAlign: 'right' }}>Nb de colonnes :</Text>
-                    <TextInput
-                        style={styles.input}
-                        keyboardType='number-pad'
-                        onChangeText={onChangeColumnsCount}
-                        value={columnsCount}
-                        placeholder='Nb de colonnes'
-                    />
-                    <View style={{ width:40 }}></View>
-                </View>
-            </View>
-            <View style={{
-                ...styles.subcontainer,
-                marginTop: 20
-            }}>
-                {choices.length ?
-                    <Text style={{
-                        fontWeight: 'bold',
-                        fontSize: 20
-                    }}>Choix</Text>
-                :
-                    null
-                } 
-                {choices.map((item, i) => item.split('|').map((subitem, j) => (
-                    <View key={j}>
-                        { j === 0 ?
-                            <View style={{
-                                flexDirection: 'row'
-                            }}>
-                                <Text style={{ width: 130, marginTop: 20, textAlign: 'right' }}>
-                                    Choix {i+1} :
-                                </Text>
-                                <Text style={{
-                                    height: 20,
-                                    marginTop: 20,
-                                    marginLeft: 12,
-                                    paddingLeft: 10,
-                                    width: 210
-                                }}>{subitem}</Text>
-                            </View>
-                        :
-                            <View style={{
-                                flexDirection: 'row'
-                            }}>
-                                <View style={{ width: 130 }}/>
-                                <Text style={{
-                                    height: 20,
-                                    marginLeft: 12,
-                                    paddingLeft: 10,
-                                    width: 210
-                                }}>{subitem.replace(/\./ig, ',')}</Text>
-                            </View>
-                        }
-                    </View>
-                )))}
-            </View>
-      </ScrollView>
-      </SafeAreaView>
+            )))}
+        </View>
+    );
+
+    return (
+        <SafeAreaView style={styles.container}>
+            <ScrollView
+                scrollIndicatorInsets={{ right: 1 }}
+                style={{
+                    width: screenWidth,
+                    height: screenHeight
+                }}
+            >
+                {renderForm()}
+                {renderResult()}
+            </ScrollView>
+        </SafeAreaView>
     );
 }
 
@@ -331,7 +401,7 @@ const styles = StyleSheet.create({
         margin: 12,
         borderWidth: 1,
         padding: 10,
-        width: 130
+        width: 160
     },
 });
 
