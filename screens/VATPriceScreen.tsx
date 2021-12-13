@@ -11,7 +11,7 @@ export function VATPriceScreen() {
     const [discountedPrice, setDiscountedPrice] = useState(0);
     
     useEffect(() => {
-      if (VAT === '') {
+      if (VAT === '' || priceWithoutVAT === '') {
         setVATPrice(0);
         return;
       }
