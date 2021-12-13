@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "calculator-expo",
-    "slug": "calculator-expo",
+    "name": "calculator",
+    "slug": "calculator",
     "owner": "roquesbat",
     "version": "1.0.0",
     "orientation": "portrait",
