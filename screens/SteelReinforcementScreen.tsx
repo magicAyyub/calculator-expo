@@ -1,52 +1,82 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, ScrollView, SafeAreaView, Dimensions } from 'react-native';
 
-const diameters = {
-    5: {
+type BarData = {
+    diameter: number; // mm
+    section: number; // cm²
+    weight: number; // kg
+}
+
+type BarsDataArray = BarData[];
+
+type BarsDataObject = {
+    [key: string]: BarData
+}
+
+type BarsDataResult = {
+    bars: BarsDataObject,
+    total: {
+        sections: number
+    }
+}
+
+const bars: BarsDataArray = [
+    {
+        diameter: 5,
         section: 0.196,
         weight: 0.154
     },
-    6: {
+    {
+        diameter: 6,
         section: 0.282,
         weight: 0.222
     },
-    8: {
+    {
+        diameter: 8,
         section: 0.502,
         weight: 0.394
     },
-    10: {
+    {
+        diameter: 10,
         section: 0.785,
         weight: 0.616
     },
-    12: {
+    {
+        diameter: 12,
         section: 1.13,
         weight: 0.887
     },
-    14: {
+    {
+        diameter: 14,
         section: 1.54,
         weight: 1.208
     },
-    16: {
+    {
+        diameter: 16,
         section: 2.01,
         weight: 1.578
     },
-    20: {
+    {
+        diameter: 20,
         section: 3.14,
         weight: 2.466
     },
-    25: {
+    {
+        diameter: 25,
         section: 4.91,
         weight: 3.853
     },
-    32: {
+    {
+        diameter: 32,
         section: 8.04,
         weight: 6.313
     },
-    40: {
+    {
+        diameter: 40,
         section: 12.57,
         weight: 9.864
     }
-};
+];
 
 const screenWidth = Dimensions.get('window').width;
 const screenHeight = Dimensions.get('window').height;
@@ -75,36 +105,34 @@ function SteelReinforcementScreen() {
         const tmpChoices: string[] = [];
 
         function getFirstChoiceSameBars() {
-            for (const [diameter, value] of Object.entries(diameters)) {
-                if (!isNaN(intMinBarDiameter) && parseInt(diameter) < intMinBarDiameter) {
+            for (const bar of bars) {
+                if (!isNaN(intMinBarDiameter) && bar.diameter < intMinBarDiameter) {
                     continue;
                 }
 
-                const section = value['section'];
-
-                const sectionsSameBars = section * intBedsCount * intColumnsCount;
+                const sectionsSameBars = bar.section * intBedsCount * intColumnsCount;
     
                 if (sectionsSameBars < floatSteelSection) {
                     continue;
                 }
 
                 const barsCount = intBedsCount * intColumnsCount;
-                const weight = value['weight'];
+                
+                let firstChoiceText = (
+                    `${barsCount} barres de ${bar.diameter} mm|`+
+                    `(${barsCount} x ${bar.section} = ${sectionsSameBars.toFixed(3)} cm²)`
+                );
 
                 let barsWeight = NaN;
+
                 if (!isNaN(intWorkLength)) {
-                    barsWeight = intWorkLength * barsCount * weight;
+                    barsWeight = intWorkLength * barsCount * bar.weight;
                 }
-    
-                let firstChoiceText = (
-                    `${barsCount} barres de ${diameter} mm|`+
-                    `(${barsCount} x ${section} = ${sectionsSameBars.toFixed(3)} cm²)`
-                );
 
                 if (!isNaN(barsWeight)) {
                     firstChoiceText += '|';
                     firstChoiceText += (
-                        `(${intWorkLength} m x ${barsCount} barres x ${weight} kg = `
+                        `(${intWorkLength} m x ${barsCount} barres x ${bar.weight} kg = `
                     );
 
                     if (barsWeight > 1000) {
@@ -134,16 +162,12 @@ function SteelReinforcementScreen() {
             return;
         }
 
-        function checkSameBars(current: {[key: string]: {}}) {
+        function checkSameBars(resultBars: BarsDataObject) {
             let tmpCurrentValuesObj = null;
             let tmpCurrentValuesObjSame = true;
             let first = true;
 
-            for (const [key, values] of Object.entries<{[key: string]: {}}>(current)) {
-                if (key === 'sections') {
-                    continue;
-                }
-
+            for (const values of Object.values(resultBars)) {
                 if (first) {
                     tmpCurrentValuesObj = values;
                     first = false;
@@ -160,80 +184,63 @@ function SteelReinforcementScreen() {
         function loopChoices(
             prevSections: number,
             remainingBedsCount: number,
-            current: {[key: string]: {}},
-            tmp: {[key: string]: {}}
+            current: BarsDataObject,
+            result: BarsDataResult
         ) {
             if (remainingBedsCount === 0) {
-                if (current['sections'] < floatSteelSection) {
+                if (prevSections < floatSteelSection) {
                     return;
                 }
 
-                if (current['sections'] < tmp['sections']) {
-                    Object.assign(tmp, current);
+                if (prevSections < result.total.sections) {
+                    Object.assign(result.bars, current);
+                    result.total.sections = prevSections;
                 }
 
                 return;
             }
 
-            for (const [diameter, value] of Object.entries(diameters)) {
-                if (!isNaN(intMinBarDiameter) && parseInt(diameter) < intMinBarDiameter) {
+            for (const bar of bars) {
+                if (!isNaN(intMinBarDiameter) && bar.diameter < intMinBarDiameter) {
                     continue;
                 }
 
-                const section = value['section'];
-                const weight = value['weight'];
-
-                if (section > floatSteelSection) {
+                if (bar.section > floatSteelSection) {
                     continue;
                 }
 
-                const sections = section * intColumnsCount;
-                current[remainingBedsCount] = {
-                    diameter,
-                    section,
-                    sections,
-                    weight
-                };
+                current[remainingBedsCount] = bar;
 
-                const currentSections = sections + prevSections; 
-                current['sections'] = currentSections
+                const sections = bar.section * intColumnsCount + prevSections;
         
-                loopChoices(currentSections, remainingBedsCount - 1, current, tmp);
+                loopChoices(sections, remainingBedsCount - 1, current, result);
             }
         }
 
         function getSecondChoiceDifferentBars() {
-            const result: {
-                      [key: string]: any
-                      'sections': number
-                  } = { 'sections': Infinity };
+            const result: BarsDataResult = { bars: {}, total: { sections: Infinity }};
 
             loopChoices(0, intBedsCount, {}, result);
 
-            let secondChoiceText = '';
-
-            if (checkSameBars(result)) {
+            if (checkSameBars(result.bars)) {
                 return '';
             }
-            
-            for (const [key, value] of Object.entries(result)) {
-                if (key === 'sections') {
-                    continue;
-                }
-                
-                secondChoiceText += `${intColumnsCount} barres de ${value['diameter']} mm|`;
-                secondChoiceText += `(${intColumnsCount} x ${value['section']} = ${value['sections'].toFixed(3)} cm²)|`
 
+            let secondChoiceText = '';
+            for (const bar of Object.values(result.bars)) {
+                secondChoiceText += `${intColumnsCount} barres de ${bar.diameter} mm|`;
+                secondChoiceText += (
+                    `(${intColumnsCount} x ${bar.section} = ${(intColumnsCount * bar.section).toFixed(3)} cm²)|`
+                )
             }
 
             secondChoiceText.substring(0, secondChoiceText.length - 1);
-            secondChoiceText += `Total : ${result['sections'].toFixed(3)} cm²`;
+            secondChoiceText += `Total : ${result.total.sections.toFixed(3)} cm²`;
 
             return secondChoiceText;
         }
 
         const secondChoiceDifferentBars = getSecondChoiceDifferentBars();
-
         if (secondChoiceDifferentBars !== '') {
             tmpChoices.push(secondChoiceDifferentBars);
         }
