@@ -211,9 +211,9 @@ function SteelReinforcementScreen() {
 
                 current[remainingBedsCount] = bar;
 
-                const sections = bar.section * intColumnsCount + prevSections;
+                const currentSections = bar.section * intColumnsCount + prevSections;
         
-                loopChoices(sections, remainingBedsCount - 1, current, result);
+                loopChoices(currentSections, remainingBedsCount - 1, current, result);
             }
         }
 
