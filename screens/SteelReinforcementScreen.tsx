@@ -314,6 +314,7 @@ function SteelReinforcementScreen() {
                     onChangeText={onChangeSteelSectionValue}
                     value={steelSectionValue}
                     placeholder="Section d'aciers"
+                    placeholderTextColor={colorScheme === 'dark' ? 'grey' : 'lightgrey'}
                 />
                 <Text style={{ ...styles.textColor, width: 40, marginTop: 21}}>cm²</Text>
             </View>
@@ -331,6 +332,7 @@ function SteelReinforcementScreen() {
                     onChangeText={onChangeBedsCount}
                     value={bedsCount}
                     placeholder='Nb de lits'
+                    placeholderTextColor={colorScheme === 'dark' ? 'grey' : 'lightgrey'}
                 />
                 <View style={{ width:40 }}></View>
             </View>
@@ -348,6 +350,7 @@ function SteelReinforcementScreen() {
                     onChangeText={onChangeColumnsCount}
                     value={columnsCount}
                     placeholder='Nb de colonnes'
+                    placeholderTextColor={colorScheme === 'dark' ? 'grey' : 'lightgrey'}
                 />
                 <View style={{ width:40 }}></View>
             </View>
@@ -365,6 +368,7 @@ function SteelReinforcementScreen() {
                     onChangeText={onChangeWorkLength}
                     value={workLength}
                     placeholder="Longueur de l'ouvrage"
+                    placeholderTextColor={colorScheme === 'dark' ? 'grey' : 'lightgrey'}
                 />
                 <Text style={{ ...styles.textColor, width:40, marginTop: 21 }}>m</Text>
             </View>
@@ -382,6 +386,7 @@ function SteelReinforcementScreen() {
                     onChangeText={onChangeMinBarDiameter}
                     value={minBarDiameter}
                     placeholder='Diamètre minimum'
+                    placeholderTextColor={colorScheme === 'dark' ? 'grey' : 'lightgrey'}
                 />
                 <Text style={{ ...styles.textColor, width:40, marginTop: 21 }}>mm</Text>
             </View>
@@ -467,7 +472,7 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         justifyContent: 'flex-start',
-        backgroundColor: colorScheme === 'dark' ? '#18191a' : 'black',
+        backgroundColor: colorScheme === 'dark' ? '#18191a' : 'white',
     },
     subcontainer: {
         alignItems: 'center',
