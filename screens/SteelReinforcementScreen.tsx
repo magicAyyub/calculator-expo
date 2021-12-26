@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, SafeAreaView, Dimensions } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ScrollView, SafeAreaView, Dimensions, Appearance } from 'react-native';
 
 type BarData = {
     diameter: number; // mm
@@ -89,7 +89,6 @@ function SteelReinforcementScreen() {
     const [minBarDiameter, onChangeMinBarDiameter] = useState('');
     const [choices, setChoices] = useState<string[]>([]);
     
-
     useEffect(() => {
         if (steelSectionValue === '' || bedsCount === '' || columnsCount === '') {
             setChoices([]);
@@ -392,10 +391,11 @@ function SteelReinforcementScreen() {
     );
 }
 
+const colorScheme = Appearance.getColorScheme();
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
         alignItems: 'center',
         justifyContent: 'flex-start',
     },
@@ -408,7 +408,9 @@ const styles = StyleSheet.create({
         margin: 12,
         borderWidth: 1,
         padding: 10,
-        width: 160
+        width: 160,
+        borderColor: colorScheme === 'dark' ? 'grey' : 'black',
+        color: colorScheme === 'dark' ? 'lightgrey' : 'black'
     },
 });
 

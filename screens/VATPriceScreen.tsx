@@ -1,6 +1,8 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, Text, TextInput, View, Appearance } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+
+const colorScheme = Appearance.getColorScheme();
 
 export function VATPriceScreen() {
     const [priceWithoutVAT, onChangePriceWithoutVAT] = useState('');
@@ -68,7 +70,9 @@ export function VATPriceScreen() {
                 />
                 <Text>Taux de TVA (en %) :</Text>
                 <TextInput
-                    style={styles.input}
+                    style={{
+                        ...styles.input,
+                    }}
                     keyboardType='numeric'
                     onChangeText={onChangeVAT}
                     value={VAT}
@@ -94,14 +98,20 @@ export function VATPriceScreen() {
                 <View style={{
                     borderWidth: 1,
                     width: 110,
+                    borderColor: colorScheme === 'dark' ? 'grey' : 'black'
                 }}>
                     <Picker
-                    selectedValue={selectedDiscountType}
-                    onValueChange={(itemValue) =>
-                        setSelectedDiscountType(itemValue)
-                    }>
-                    <Picker.Item label="en %" value="discountRate" />
-                    <Picker.Item label="forfait" value="discount" />
+                        dropdownIconColor={colorScheme === 'dark' ? 'lightgrey' : 'black'}
+                        style={{
+                            color: colorScheme === 'dark' ? 'grey' : 'black'
+                        }}
+                        selectedValue={selectedDiscountType}
+                        onValueChange={(itemValue) =>
+                           setSelectedDiscountType(itemValue)
+                        }
+                    >
+                        <Picker.Item label="en %" value="discountRate" />
+                        <Picker.Item label="forfait" value="discount" />
                     </Picker>
                 </View>
                 <TextInput
@@ -122,11 +132,10 @@ export function VATPriceScreen() {
         </View>
     );
 }
-  
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
         alignItems: 'center',
         justifyContent: 'flex-start',
     },
@@ -139,9 +148,10 @@ const styles = StyleSheet.create({
         margin: 12,
         borderWidth: 1,
         padding: 10,
-        width: 110
+        width: 110,
+        borderColor: colorScheme === 'dark' ? 'grey' : 'black',
+        color: colorScheme === 'dark' ? 'lightgrey' : 'black'
     },
 });
   
-
 export default VATPriceScreen;
