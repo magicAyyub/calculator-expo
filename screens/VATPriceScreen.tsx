@@ -57,18 +57,20 @@ export function VATPriceScreen() {
                 marginTop: 20
             }}>
                 <Text style={{
+                    ...styles.textColor,
                     fontWeight: 'bold',
                     fontSize: 20
                 }}>Calcul de prix TTC</Text>
-                <Text>Prix HT :</Text>
+                <Text style={styles.textColor}>Prix HT :</Text>
                 <TextInput
                     style={styles.input}
                     keyboardType='numeric'
                     onChangeText={onChangePriceWithoutVAT}
                     value={priceWithoutVAT}
                     placeholder='Prix HT'
+                    placeholderTextColor={colorScheme === 'dark' ? 'grey' : 'lightgrey'}
                 />
-                <Text>Taux de TVA (en %) :</Text>
+                <Text style={styles.textColor}>Taux de TVA (en %) :</Text>
                 <TextInput
                     style={{
                         ...styles.input,
@@ -77,12 +79,15 @@ export function VATPriceScreen() {
                     onChangeText={onChangeVAT}
                     value={VAT}
                     placeholder='Taux de TVA'
+                    placeholderTextColor={colorScheme === 'dark' ? 'grey' : 'lightgrey'}
                 />
                 <Text style={{
+                    ...styles.textColor,
                     fontWeight: 'bold',
                     fontSize: 16
                 }}>Prix TTC :</Text>
                 <Text style={{
+                    ...styles.textColor,
                     fontSize: 16
                 }}>{VATPrice.toFixed(2).replace('.', ',')}</Text>
             </View>
@@ -91,10 +96,11 @@ export function VATPriceScreen() {
                 marginTop: 20
             }}>
                 <Text style={{
+                    ...styles.textColor,
                     fontWeight: 'bold',
                     fontSize: 20
                 }}>Calcul de prix TTC avec Remise</Text>
-                <Text>Remise :</Text>
+                <Text style={styles.textColor}>Remise :</Text>
                 <View style={{
                     borderWidth: 1,
                     width: 110,
@@ -120,12 +126,15 @@ export function VATPriceScreen() {
                     onChangeText={onChangeDiscountValue}
                     value={discountValue}
                     placeholder='Remise'
+                    placeholderTextColor={colorScheme === 'dark' ? 'grey' : 'lightgrey'}
                 />
                 <Text style={{
+                    ...styles.textColor,
                     fontWeight: 'bold',
                     fontSize: 16
                 }}>Prix TTC après remise :</Text>
                 <Text style={{
+                    ...styles.textColor,
                     fontSize: 16
                 }}>{discountedPrice.toFixed(2).replace('.', ',')}</Text>
             </View>
@@ -138,10 +147,14 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         justifyContent: 'flex-start',
+        backgroundColor: colorScheme === 'dark' ? '#18191a' : 'white',
     },
     subcontainer: {
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    textColor: {
+        color: colorScheme === 'dark' ? 'lightgrey' : 'black',
     },
     input: {
         height: 40,
