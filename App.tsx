@@ -6,9 +6,12 @@ import { Appearance, StatusBar } from 'react-native';
 import HomeScreen from './screens/HomeScreen';
 import VATPriceScreen from './screens/VATPriceScreen';
 import SteelReinforcementScreen from './screens/SteelReinforcementScreen';
+import HomeDrawerScreen from './screens/HomeDrawerScreen';
 
 export type RootStackParamList = {
   Home: undefined;
+  HomeDrawer: undefined;
+  DataEntries: undefined;
   VATPrice: undefined;
   SteelReinforcement: undefined;
 };
@@ -32,9 +35,11 @@ function App() {
         }}
       >
         <Stack.Screen
-          name="Home"
-          component={HomeScreen}
-          options={{ title: 'Accueil' }}
+          name="HomeDrawer"
+          component={HomeDrawerScreen}
+          options={{
+            headerShown: false
+          }}
         />
         <Stack.Screen
           name="VATPrice"
