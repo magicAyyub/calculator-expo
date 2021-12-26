@@ -25,7 +25,7 @@ function Button(props: {onPress: () => void, title: string }) {
 
 function HomeScreen({ navigation }: Props) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+      <View style={styles.container}>
         <View style={{ marginBottom: 10}}>
           <Button
             title='Calcul de prix TTC'
@@ -45,6 +45,12 @@ function HomeScreen({ navigation }: Props) {
 const colorScheme = Appearance.getColorScheme();
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colorScheme === 'dark' ? '#18191a' : 'white',
+  },
   button: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -52,7 +58,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     borderRadius: 4,
     elevation: 3,
-    backgroundColor: colorScheme === 'dark' ? 'darkgrey' : 'black',
+    backgroundColor: colorScheme === 'dark' ? 'grey' : 'black',
     width: 220,
   },
   text: {
