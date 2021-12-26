@@ -226,16 +226,56 @@ function SteelReinforcementScreen() {
             }
 
             let secondChoiceText = '';
+            let totalBarsWeight = 0;
+
             for (const bar of Object.values(result.bars)) {
-                secondChoiceText += `${intColumnsCount} barres de ${bar.diameter} mm|`;
                 secondChoiceText += (
-                    `(${intColumnsCount} x ${bar.section} = ${(intColumnsCount * bar.section).toFixed(3)} cm²)|`
-                )
+                    `${intColumnsCount} barres de ${bar.diameter} mm = `
+                    + `${(intColumnsCount * bar.section).toFixed(3)} cm²|`
+                );
+
+                // TODO: add details calculation
+                // secondChoiceText += (
+                //     `(${intColumnsCount} x ${bar.section} = ${(intColumnsCount * bar.section).toFixed(3)} cm²)|`
+                // )
+
+                let barsWeight = NaN;
+
+                if (!isNaN(intWorkLength)) {
+                    barsWeight = intWorkLength * intColumnsCount * bar.weight;
+                    totalBarsWeight += barsWeight;
+                }
+
+                if (!isNaN(barsWeight)) {
+                    secondChoiceText += (
+                        `(${intWorkLength} m x ${intColumnsCount} barres x ${bar.weight} kg = `
+                    );
+
+                    if (barsWeight > 1000) {
+                        secondChoiceText += `${barsWeight / 1000} t)`;
+                        secondChoiceText += '|';
+                        continue;
+                    }
+
+                    secondChoiceText += `${barsWeight} kg)`;
+                    secondChoiceText += '|';
+                }
             }
 
             secondChoiceText.substring(0, secondChoiceText.length - 1);
             secondChoiceText += `Total : ${result.total.sections.toFixed(3)} cm²`;
 
+            if (totalBarsWeight > 0) {
+                secondChoiceText += '|';
+
+                if (totalBarsWeight > 1000) {
+                    secondChoiceText += `            ${totalBarsWeight / 1000} t`;
+                    return secondChoiceText;
+                }
+    
+                secondChoiceText += `            ${totalBarsWeight} kg`;
+            }
+            
             return secondChoiceText;
         }
 
@@ -256,13 +296,18 @@ function SteelReinforcementScreen() {
             paddingBottom: 20
         }}>
             <Text style={{
+                ...styles.textColor,
                 fontWeight: 'bold',
                 fontSize: 20
             }}>Calcul de ferraillage</Text>
             <View style={{
                 flexDirection: 'row',
             }}>
-                <Text style={{ width: 120, marginTop: 21, textAlign: 'right' }}>Section d'aciers</Text>
+                <Text style={{
+                    ...styles.textColor,
+                    ...styles.formLeftText,
+                    ...styles.formSingleLineText
+                }}>Section d'aciers</Text>
                 <TextInput
                     style={styles.input}
                     keyboardType='numeric'
@@ -270,12 +315,16 @@ function SteelReinforcementScreen() {
                     value={steelSectionValue}
                     placeholder="Section d'aciers"
                 />
-                <Text style={{ width: 40, marginTop: 21}}>cm²</Text>
+                <Text style={{ ...styles.textColor, width: 40, marginTop: 21}}>cm²</Text>
             </View>
             <View style={{
                 flexDirection: 'row'
             }}>
-                <Text style={{ width: 120, marginTop: 21, textAlign: 'right' }}>Nb de lits</Text>
+                <Text style={{
+                    ...styles.textColor,
+                    ...styles.formLeftText,
+                    ...styles.formSingleLineText
+                }}>Nb de lits</Text>
                 <TextInput
                     style={styles.input}
                     keyboardType='number-pad'
@@ -288,7 +337,11 @@ function SteelReinforcementScreen() {
             <View style={{
                 flexDirection: 'row'
             }}>
-                <Text style={{ width: 120, marginTop: 21, textAlign: 'right' }}>Nb de colonnes</Text>
+                <Text style={{
+                    ...styles.textColor,
+                    ...styles.formLeftText,
+                    ...styles.formSingleLineText
+                }}>Nb de colonnes</Text>
                 <TextInput
                     style={styles.input}
                     keyboardType='number-pad'
@@ -301,7 +354,11 @@ function SteelReinforcementScreen() {
             <View style={{
                 flexDirection: 'row'
             }}>
-                <Text style={{ width: 120, marginTop: 13, textAlign: 'right' }}>Longueur de l'ouvrage</Text>
+                <Text style={{
+                    ...styles.textColor,
+                    ...styles.formLeftText,
+                    ...styles.formTwoLinesText
+                }}>Longueur de l'ouvrage</Text>
                 <TextInput
                     style={styles.input}
                     keyboardType='number-pad'
@@ -309,12 +366,16 @@ function SteelReinforcementScreen() {
                     value={workLength}
                     placeholder="Longueur de l'ouvrage"
                 />
-                <Text style={{ width:40, marginTop: 21 }}>m</Text>
+                <Text style={{ ...styles.textColor, width:40, marginTop: 21 }}>m</Text>
             </View>
             <View style={{
                 flexDirection: 'row'
             }}>
-                <Text style={{ width: 120, marginTop: 13, textAlign: 'right' }}>Diamètre minimum</Text>
+                <Text style={{
+                    ...styles.textColor,
+                    ...styles.formLeftText,
+                    ...styles.formTwoLinesText
+                }}>Diamètre minimum</Text>
                 <TextInput
                     style={styles.input}
                     keyboardType='number-pad'
@@ -322,7 +383,7 @@ function SteelReinforcementScreen() {
                     value={minBarDiameter}
                     placeholder='Diamètre minimum'
                 />
-                <Text style={{ width:40, marginTop: 21 }}>mm</Text>
+                <Text style={{ ...styles.textColor, width:40, marginTop: 21 }}>mm</Text>
             </View>
         </View>
     );
@@ -334,6 +395,7 @@ function SteelReinforcementScreen() {
         }}>
             {choices.length ?
                 <Text style={{
+                    ...styles.textColor,
                     fontWeight: 'bold',
                     fontSize: 20
                 }}>Choix</Text>
@@ -346,10 +408,16 @@ function SteelReinforcementScreen() {
                         <View style={{
                             flexDirection: 'row'
                         }}>
-                            <Text style={{ width: 130, marginTop: 20, textAlign: 'right' }}>
+                            <Text style={{
+                                ...styles.textColor,
+                                width: 130,
+                                marginTop: 20,
+                                textAlign: 'right',
+                            }}>
                                 Choix {i+1} :
                             </Text>
                             <Text style={{
+                                ...styles.textColor,
                                 height: 20,
                                 marginTop: 20,
                                 marginLeft: 12,
@@ -363,6 +431,7 @@ function SteelReinforcementScreen() {
                         }}>
                             <View style={{ width: 130 }}/>
                             <Text style={{
+                                ...styles.textColor,
                                 height: 20,
                                 marginLeft: 12,
                                 paddingLeft: 10,
@@ -398,10 +467,24 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         justifyContent: 'flex-start',
+        backgroundColor: colorScheme === 'dark' ? '#18191a' : 'black',
     },
     subcontainer: {
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    textColor: {
+        color: colorScheme === 'dark' ? 'lightgrey' : 'black',
+    },
+    formLeftText: {
+        width: 120,
+        textAlign: 'right'
+    },
+    formSingleLineText: {
+        marginTop: 21
+    },
+    formTwoLinesText: {
+        marginTop: 13
     },
     input: {
         height: 40,
