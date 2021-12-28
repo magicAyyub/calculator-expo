@@ -10,6 +10,8 @@ import DrawerToggleButton from '../components/DrawerToggleButton';
 const Drawer = createDrawerNavigator();
 const colorScheme = Appearance.getColorScheme();
 
+
+
 function HomeDrawerScreen() {
   return (
     <Drawer.Navigator
@@ -21,16 +23,6 @@ function HomeDrawerScreen() {
           shadowColor: 'transparent'
         },
         headerTintColor: colorScheme === 'dark' ? 'lightgrey' : 'black',
-        headerTitle: props => (
-          <Text
-            style={{
-              ...styles.title,
-              color: colorScheme === 'dark' ? 'white' : 'black',
-            }}
-          >
-            {props.children}
-          </Text>
-        ),
         headerLeft: () => (
           <DrawerToggleButton
             tintColor={colorScheme === 'dark' ? 'white' : 'black'}
