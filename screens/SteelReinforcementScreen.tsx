@@ -1,83 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, SafeAreaView, Dimensions, Appearance } from 'react-native';
+import React, { MutableRefObject, useEffect, useRef, useState } from 'react';
+import { View, Text, TextInput, StyleSheet, ScrollView, SafeAreaView, Dimensions, Appearance, TouchableOpacity } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
-type BarData = {
-    diameter: number; // mm
-    section: number; // cm²
-    weight: number; // kg
-}
-
-type BarsDataArray = BarData[];
-
-type BarsDataObject = {
-    [key: string]: BarData
-}
-
-type BarsDataResult = {
-    bars: BarsDataObject,
-    total: {
-        sections: number
-    }
-}
-
-const bars: BarsDataArray = [
-    {
-        diameter: 5,
-        section: 0.196,
-        weight: 0.154
-    },
-    {
-        diameter: 6,
-        section: 0.282,
-        weight: 0.222
-    },
-    {
-        diameter: 8,
-        section: 0.502,
-        weight: 0.394
-    },
-    {
-        diameter: 10,
-        section: 0.785,
-        weight: 0.616
-    },
-    {
-        diameter: 12,
-        section: 1.13,
-        weight: 0.887
-    },
-    {
-        diameter: 14,
-        section: 1.54,
-        weight: 1.208
-    },
-    {
-        diameter: 16,
-        section: 2.01,
-        weight: 1.578
-    },
-    {
-        diameter: 20,
-        section: 3.14,
-        weight: 2.466
-    },
-    {
-        diameter: 25,
-        section: 4.91,
-        weight: 3.853
-    },
-    {
-        diameter: 32,
-        section: 8.04,
-        weight: 6.313
-    },
-    {
-        diameter: 40,
-        section: 12.57,
-        weight: 9.864
-    }
-];
+import { BarsCalculationResult, BarsObject } from '../types/SteelReinforcement';
+import { bars } from '../data/SteelReinforcement';
+import { numberFormat } from '../utils';
 
 const screenWidth = Dimensions.get('window').width;
 const screenHeight = Dimensions.get('window').height;
@@ -109,11 +36,14 @@ function SteelReinforcementScreen() {
     const [workLength, onChangeWorkLength] = useState('');
     const [minBarDiameter, onChangeMinBarDiameter] = useState('');
     const [choices, setChoices] = useState<string[]>([]);
+    const [detailsChoices, setDetailsChoices] = useState<string[]>([]);
+    const [detailsChoicesToggles, setDetailsChoicesToggles] = useState([false, false]);
    
     useEffect(() => {
         (async () => {
             if (steelSectionValue === '' || bedsCount === '' || columnsCount === '') {
                 setChoices([]);
+                setDetailsChoices([]);
                 return;
             }
     
@@ -124,6 +54,7 @@ function SteelReinforcementScreen() {
             const intMinBarDiameter = parseInt(minBarDiameter);
     
             const tmpChoices: string[] = [];
+            const tmpDetailsChoices: string[] = [];
     
             async function getFirstChoiceOneTypeOfBars() {
                 for (const bar of bars) {
@@ -131,72 +62,94 @@ function SteelReinforcementScreen() {
                         continue;
                     }
     
-                    const sectionsSameBars = bar.section * intBedsCount * intColumnsCount;
+                    const sectionsOneTypeOfBars = bar.section * intBedsCount * intColumnsCount;
         
-                    if (sectionsSameBars < floatSteelSection) {
+                    if (sectionsOneTypeOfBars < floatSteelSection) {
                         continue;
                     }
     
                     const barsCount = intBedsCount * intColumnsCount;
                     
                     let firstChoiceText = (
-                        `${barsCount} barres de ${bar.diameter} mm = ${sectionsSameBars.toFixed(3)} cm²`
+                        `${barsCount} barres de ${bar.diameter} mm = ${sectionsOneTypeOfBars.toFixed(3)} cm²`
                     );
     
-                    // let firstChoiceText = (
-                    //     `${barsCount} barres de ${bar.diameter} mm|`+
-                    //     `(${barsCount} x ${bar.section} = ${sectionsSameBars.toFixed(3)} cm²)`
-                    // );
+                    let firstChoiceDetailsText = (
+                        `${barsCount} barres de ${bar.diameter} mm\``+
+                        `(${barsCount} x ${bar.section} = ${sectionsOneTypeOfBars.toFixed(3)} cm²)`
+                    );
     
                     let barsWeight = NaN;
     
                     if (!isNaN(intWorkLength)) {
                         barsWeight = intWorkLength * barsCount * bar.weight;
+                    } else {
+                        return [firstChoiceText, firstChoiceDetailsText];
                     }
-    
-                    if (!isNaN(barsWeight)) {
-                        firstChoiceText += '`';
-                        // firstChoiceText += (
-                        //     `(${intWorkLength} m x ${barsCount} barres x ${bar.weight} kg = `
-                        // );
 
-                        if (barsWeight > 1000) {
-                            firstChoiceText += `${(barsWeight / 1000).toFixed(3)} t`;
-                        } else {
-                            firstChoiceText += `${barsWeight.toFixed(3)} kg`;
-                        }                        
+                    firstChoiceText += '`';
+                    firstChoiceDetailsText += '`';
+                    firstChoiceDetailsText += (
+                        `(${intWorkLength} m x ${barsCount} barres x ${bar.weight} kg = `
+                    );
 
-                        const storedSteelPrice = await getStoredSteelPrice();
+                    const storedSteelPrice = await getStoredSteelPrice();
 
-                        if (storedSteelPrice) {
-                            firstChoiceText += ' | ';
-                            firstChoiceText += (
-                                `${(barsWeight / 1000 * storedSteelPrice).toFixed(2)}€`
-                            );
+                    if (barsWeight > 1000) {
+                        const tonsWeight = `${(barsWeight / 1000).toFixed(3)} t`;
+                        firstChoiceText += tonsWeight;
+                        firstChoiceDetailsText += tonsWeight;
+
+                        if (!storedSteelPrice) {
+                            return [firstChoiceText, firstChoiceDetailsText];
                         }
 
-                        return firstChoiceText;
+                        firstChoiceDetailsText += '`';
+                        firstChoiceDetailsText += (
+                            `(${tonsWeight} t x ${storedSteelPrice}€/t = `
+                        );
+                    } else {
+                        const kgsWeight = barsWeight.toFixed(3);
+                        firstChoiceText += `${kgsWeight} kg`;
+                        firstChoiceDetailsText += `${kgsWeight} kg)`;
+
+                        if (!storedSteelPrice) {
+                            return [firstChoiceText, firstChoiceDetailsText];
+                        }
+
+                        firstChoiceDetailsText += '`';
+                        firstChoiceDetailsText += (
+                            `(${kgsWeight} kg x ${storedSteelPrice}€/t = `
+                        );
                     }
-    
-                    return firstChoiceText;
+                    
+                    const price = `${(barsWeight / 1000 * storedSteelPrice).toFixed(2)}€`;
+
+                    firstChoiceText += ' | ';
+                    firstChoiceText += price;
+                    firstChoiceDetailsText += `${price})`;
+
+                    return [firstChoiceText, firstChoiceDetailsText];
                 }
     
-                return '';
+                return ['', ''];
             }
     
-            const firstChoiceSameBars = await getFirstChoiceOneTypeOfBars();
-            tmpChoices.push(firstChoiceSameBars);
+            const [firstChoiceText, firstChoiceDetailsText] = await getFirstChoiceOneTypeOfBars();
+            tmpChoices.push(firstChoiceText);
+            tmpDetailsChoices.push(firstChoiceDetailsText);
     
             if (intBedsCount === 1) {
-                if (firstChoiceSameBars === '') {
+                if (firstChoiceText === '') {
                     return;
                 }
     
                 setChoices(tmpChoices);
+                setDetailsChoices(tmpDetailsChoices);
                 return;
             }
     
-            function checkSameBars(resultBars: BarsDataObject) {
+            function checkSameBars(resultBars: BarsObject) {
                 let tmpCurrentValuesObj = null;
                 let tmpCurrentValuesObjSame = true;
                 let first = true;
@@ -206,9 +159,11 @@ function SteelReinforcementScreen() {
                         tmpCurrentValuesObj = values;
                         first = false;
                     }
-    
-                    tmpCurrentValuesObjSame = tmpCurrentValuesObjSame
-                                              && JSON.stringify(values) === JSON.stringify(tmpCurrentValuesObj);
+
+                    tmpCurrentValuesObjSame = (
+                        tmpCurrentValuesObjSame
+                        && JSON.stringify(values) === JSON.stringify(tmpCurrentValuesObj)
+                    );
                     
                 }
     
@@ -218,8 +173,8 @@ function SteelReinforcementScreen() {
             function loopChoices(
                 prevSections: number,
                 remainingBedsCount: number,
-                current: BarsDataObject,
-                result: BarsDataResult
+                current: BarsObject,
+                result: BarsCalculationResult
             ) {
                 if (remainingBedsCount === 0) {
                     if (prevSections < floatSteelSection) {
@@ -252,16 +207,17 @@ function SteelReinforcementScreen() {
             }
     
             async function getSecondChoiceDifferentBars() {
-                const result: BarsDataResult = { bars: {}, total: { sections: Infinity }};
+                const result: BarsCalculationResult = { bars: {}, total: { sections: Infinity }};
     
                 loopChoices(0, intBedsCount, {}, result);
     
                 if (checkSameBars(result.bars)) {
-                    return '';
+                    return ['', ''];
                 }
 
                 const storedSteelPrice = await getStoredSteelPrice();
                 let secondChoiceText = '';
+                let secondChoiceDetailsText = '';
                 let totalBarsWeight = 0;
     
                 for (const bar of Object.values(result.bars)) {
@@ -270,196 +226,223 @@ function SteelReinforcementScreen() {
                         + `${(intColumnsCount * bar.section).toFixed(3)} cm²\``
                     );
     
-                    // TODO: add details calculation
-                    // secondChoiceText += (
-                    //     `(${intColumnsCount} x ${bar.section} = ${(intColumnsCount * bar.section).toFixed(3)} cm²)|`
-                    // )
+                    secondChoiceDetailsText += (
+                        `${intColumnsCount} barres de ${bar.diameter} mm\``
+                        + `(${intColumnsCount} x ${bar.section} = ${(intColumnsCount * bar.section).toFixed(3)} cm²)\``
+                    )
     
                     let barsWeight = NaN;
     
                     if (!isNaN(intWorkLength)) {
                         barsWeight = intWorkLength * intColumnsCount * bar.weight;
                         totalBarsWeight += barsWeight;
+                    } else {
+                        continue;
                     }
     
-                    if (!isNaN(barsWeight)) {
-                        // secondChoiceText += (
-                        //     `(${intWorkLength} m x ${intColumnsCount} barres x ${bar.weight} kg = `
-                        // );
-    
-                        if (barsWeight > 1000) {
-                            secondChoiceText += `${(barsWeight / 1000).toFixed(3)} t`;
-                        } else {
-                            secondChoiceText += `${barsWeight.toFixed(3)} kg`;
-                        }                        
+                    secondChoiceDetailsText += (
+                        `(${intWorkLength} m x ${intColumnsCount} barres x ${bar.weight} kg = `
+                    );
 
-                        if (storedSteelPrice) {
-                            secondChoiceText += ' | ';
-                            secondChoiceText += (
-                                `${(barsWeight / 1000 * storedSteelPrice).toFixed(2)}€`
-                            );
+                    if (barsWeight > 1000) {
+                        const tonsWeight = (barsWeight / 1000).toFixed(3);
+                        secondChoiceText += `${tonsWeight} t`;
+                        secondChoiceDetailsText += `${tonsWeight} t)\``;
+
+                        if (!storedSteelPrice) {
+                            secondChoiceText += '`';
+                            continue;
                         }
 
-                        secondChoiceText += '`';
-                    }
+                        secondChoiceDetailsText += (
+                            `(${tonsWeight} t x ${storedSteelPrice}€/t = `
+                        );
+
+                    } else {
+                        const kgsWeight = barsWeight.toFixed(3);
+                        secondChoiceText += `${kgsWeight} kg`;
+                        secondChoiceDetailsText += `${kgsWeight} kg)\``;
+
+                        if (!storedSteelPrice) {
+                            secondChoiceText += '`';
+                            continue;
+                        }
+
+                        secondChoiceDetailsText += (
+                            `(${kgsWeight} kg x ${storedSteelPrice}€/t = `
+                        );
+                    }       
+
+                    const price = `${(barsWeight / 1000 * storedSteelPrice).toFixed(2)}€`;
+                    
+                    secondChoiceText += ' | ';
+                    secondChoiceText += price;
+                    secondChoiceText += '`';
+
+                    secondChoiceDetailsText += `${price})\``;
                 }
     
                 secondChoiceText.substring(0, secondChoiceText.length - 1);
-                secondChoiceText += `Total : ${result.total.sections.toFixed(3)} cm²`;
+
+                let totalText = '';
+                totalText += `Total : ${result.total.sections.toFixed(3)} cm²`;
     
                 if (totalBarsWeight > 0) {
-                    secondChoiceText += '`';
-                    secondChoiceText += addSpaces(12);
+                    totalText += '`';
+                    totalText += addSpaces(12);
     
                     if (totalBarsWeight > 1000) {
-                        secondChoiceText += `${(totalBarsWeight / 1000).toFixed(3)} t`;
+                        totalText += `${(totalBarsWeight / 1000).toFixed(3)} t`;
                     } else {
-                        secondChoiceText += `${totalBarsWeight.toFixed(3)} kg`;
+                        totalText += `${totalBarsWeight.toFixed(3)} kg`;
                     }
 
                     if (storedSteelPrice) {
-                        secondChoiceText += '`';
-                        secondChoiceText += addSpaces(12);
-                        secondChoiceText += (
+                        totalText += '`';
+                        totalText += addSpaces(12);
+                        totalText += (
                             `${(totalBarsWeight / 1000 * storedSteelPrice).toFixed(2)}€`
                         );
                     }
                 }
+
+                secondChoiceText += totalText;
+                secondChoiceDetailsText += totalText;
                 
-                return secondChoiceText;
+                return [secondChoiceText, secondChoiceDetailsText];
             }
     
-            const secondChoiceDifferentBars = await getSecondChoiceDifferentBars();
-            if (secondChoiceDifferentBars !== '') {
-                tmpChoices.push(secondChoiceDifferentBars);
+            const [secondChoiceText, secondChoiceDetailsText] = await getSecondChoiceDifferentBars();
+            if (secondChoiceText !== '') {
+                tmpChoices.push(secondChoiceText);
+                tmpDetailsChoices.push(secondChoiceDetailsText);
             }
     
             setChoices(tmpChoices);
+            setDetailsChoices(tmpDetailsChoices);
         })();
     }, [steelSectionValue, bedsCount, columnsCount, workLength, minBarDiameter]);
 
-    const renderForm = () => (
-        <View style={{
-            flex: 1,
-            ...styles.subcontainer,
-            paddingTop: 20,
-            paddingBottom: 20
-        }}>
-            <Text style={{
-                ...styles.textColor,
-                fontWeight: 'bold',
-                fontSize: 20
-            }}>Calcul de ferraillage</Text>
+    function renderForm() {
+        return (
             <View style={{
-                flexDirection: 'row',
+                flex: 1,
+                ...styles.subcontainer,
+                paddingTop: 20,
+                paddingBottom: 20
             }}>
-                <Text style={{
-                    ...styles.textColor,
-                    ...styles.formLeftText,
-                    ...styles.formSingleLineText
-                }}>Section d'aciers</Text>
-                <TextInput
-                    style={styles.input}
-                    keyboardType='numeric'
-                    onChangeText={onChangeSteelSectionValue}
-                    value={steelSectionValue}
-                    placeholder="Section d'aciers"
-                    placeholderTextColor={colorScheme === 'dark' ? 'grey' : 'lightgrey'}
-                />
-                <Text style={{ ...styles.textColor, width: 40, marginTop: 21}}>cm²</Text>
-            </View>
-            <View style={{
-                flexDirection: 'row'
-            }}>
-                <Text style={{
-                    ...styles.textColor,
-                    ...styles.formLeftText,
-                    ...styles.formSingleLineText
-                }}>Nb de lits</Text>
-                <TextInput
-                    style={styles.input}
-                    keyboardType='number-pad'
-                    onChangeText={onChangeBedsCount}
-                    value={bedsCount}
-                    placeholder='Nb de lits'
-                    placeholderTextColor={colorScheme === 'dark' ? 'grey' : 'lightgrey'}
-                />
-                <View style={{ width:40 }}></View>
-            </View>
-            <View style={{
-                flexDirection: 'row'
-            }}>
-                <Text style={{
-                    ...styles.textColor,
-                    ...styles.formLeftText,
-                    ...styles.formSingleLineText
-                }}>Nb de colonnes</Text>
-                <TextInput
-                    style={styles.input}
-                    keyboardType='number-pad'
-                    onChangeText={onChangeColumnsCount}
-                    value={columnsCount}
-                    placeholder='Nb de colonnes'
-                    placeholderTextColor={colorScheme === 'dark' ? 'grey' : 'lightgrey'}
-                />
-                <View style={{ width:40 }}></View>
-            </View>
-            <View style={{
-                flexDirection: 'row'
-            }}>
-                <Text style={{
-                    ...styles.textColor,
-                    ...styles.formLeftText,
-                    ...styles.formTwoLinesText
-                }}>Longueur de l'ouvrage</Text>
-                <TextInput
-                    style={styles.input}
-                    keyboardType='number-pad'
-                    onChangeText={onChangeWorkLength}
-                    value={workLength}
-                    placeholder="Longueur de l'ouvrage"
-                    placeholderTextColor={colorScheme === 'dark' ? 'grey' : 'lightgrey'}
-                />
-                <Text style={{ ...styles.textColor, width:40, marginTop: 21 }}>m</Text>
-            </View>
-            <View style={{
-                flexDirection: 'row'
-            }}>
-                <Text style={{
-                    ...styles.textColor,
-                    ...styles.formLeftText,
-                    ...styles.formTwoLinesText
-                }}>Diamètre minimum</Text>
-                <TextInput
-                    style={styles.input}
-                    keyboardType='number-pad'
-                    onChangeText={onChangeMinBarDiameter}
-                    value={minBarDiameter}
-                    placeholder='Diamètre minimum'
-                    placeholderTextColor={colorScheme === 'dark' ? 'grey' : 'lightgrey'}
-                />
-                <Text style={{ ...styles.textColor, width:40, marginTop: 21 }}>mm</Text>
-            </View>
-        </View>
-    );
-
-    const renderResult = () => (
-        <View style={{
-            ...styles.subcontainer,
-            paddingTop: 20,
-        }}>
-            {choices.length ?
                 <Text style={{
                     ...styles.textColor,
                     fontWeight: 'bold',
                     fontSize: 20
-                }}>Choix</Text>
-            :
-                null
-            } 
-            {choices.map((item, i) => item.split('`').map((subitem, j) => (
-                <View key={j}>
-                    { j === 0 ?
+                }}>Calcul de ferraillage</Text>
+                <View style={{
+                    flexDirection: 'row',
+                }}>
+                    <Text style={{
+                        ...styles.textColor,
+                        ...styles.formLeftText,
+                        ...styles.formSingleLineText
+                    }}>Section d'aciers</Text>
+                    <TextInput
+                        style={styles.input}
+                        keyboardType='numeric'
+                        onChangeText={onChangeSteelSectionValue}
+                        value={steelSectionValue}
+                        placeholder="Section d'aciers"
+                        placeholderTextColor={colorScheme === 'dark' ? 'grey' : 'lightgrey'}
+                    />
+                    <Text style={{ ...styles.textColor, width: 40, marginTop: 21}}>cm²</Text>
+                </View>
+                <View style={{
+                    flexDirection: 'row'
+                }}>
+                    <Text style={{
+                        ...styles.textColor,
+                        ...styles.formLeftText,
+                        ...styles.formSingleLineText
+                    }}>Nb de lits</Text>
+                    <TextInput
+                        style={styles.input}
+                        keyboardType='number-pad'
+                        onChangeText={onChangeBedsCount}
+                        value={bedsCount}
+                        placeholder='Nb de lits'
+                        placeholderTextColor={colorScheme === 'dark' ? 'grey' : 'lightgrey'}
+                    />
+                    <View style={{ width:40 }}></View>
+                </View>
+                <View style={{
+                    flexDirection: 'row'
+                }}>
+                    <Text style={{
+                        ...styles.textColor,
+                        ...styles.formLeftText,
+                        ...styles.formSingleLineText
+                    }}>Nb de colonnes</Text>
+                    <TextInput
+                        style={styles.input}
+                        keyboardType='number-pad'
+                        onChangeText={onChangeColumnsCount}
+                        value={columnsCount}
+                        placeholder='Nb de colonnes'
+                        placeholderTextColor={colorScheme === 'dark' ? 'grey' : 'lightgrey'}
+                    />
+                    <View style={{ width:40 }}></View>
+                </View>
+                <View style={{
+                    flexDirection: 'row'
+                }}>
+                    <Text style={{
+                        ...styles.textColor,
+                        ...styles.formLeftText,
+                        ...styles.formTwoLinesText
+                    }}>Longueur de l'ouvrage</Text>
+                    <TextInput
+                        style={styles.input}
+                        keyboardType='number-pad'
+                        onChangeText={onChangeWorkLength}
+                        value={workLength}
+                        placeholder="Longueur de l'ouvrage"
+                        placeholderTextColor={colorScheme === 'dark' ? 'grey' : 'lightgrey'}
+                    />
+                    <Text style={{ ...styles.textColor, width:40, marginTop: 21 }}>m</Text>
+                </View>
+                <View style={{
+                    flexDirection: 'row'
+                }}>
+                    <Text style={{
+                        ...styles.textColor,
+                        ...styles.formLeftText,
+                        ...styles.formTwoLinesText
+                    }}>Diamètre minimum</Text>
+                    <TextInput
+                        style={styles.input}
+                        keyboardType='number-pad'
+                        onChangeText={onChangeMinBarDiameter}
+                        value={minBarDiameter}
+                        placeholder='Diamètre minimum'
+                        placeholderTextColor={colorScheme === 'dark' ? 'grey' : 'lightgrey'}
+                    />
+                    <Text style={{ ...styles.textColor, width:40, marginTop: 21 }}>mm</Text>
+                </View>
+            </View>
+        );
+    }
+
+    function toggleDetailsChoice(index: number) {
+        let newDetailsChoicesToggles = [...detailsChoicesToggles];
+        newDetailsChoicesToggles[index] = !detailsChoicesToggles[index];
+        setDetailsChoicesToggles(newDetailsChoicesToggles);
+    }
+
+    function renderResult() {
+        let choicesResult = [];
+
+        function renderChoiceRow(item: string, parentIndex: number, index: number) {
+            return (
+                <View key={index}>
+                    { index === 0 ?
                         <View style={{
                             flexDirection: 'row'
                         }}>
@@ -469,7 +452,7 @@ function SteelReinforcementScreen() {
                                 marginTop: 20,
                                 textAlign: 'right',
                             }}>
-                                Choix {i+1} :
+                                Choix {parentIndex + 1} :
                             </Text>
                             <Text style={{
                                 ...styles.textColor,
@@ -477,7 +460,7 @@ function SteelReinforcementScreen() {
                                 marginLeft: 12,
                                 paddingLeft: 10,
                                 width: workLength === '' ? 240 : 290
-                            }}>{subitem.replace(/\./ig, ',')}</Text>
+                            }}>{numberFormat(item)}</Text>
                         </View>
                     :
                         <View style={{
@@ -489,13 +472,55 @@ function SteelReinforcementScreen() {
                                 marginLeft: 12,
                                 paddingLeft: 10,
                                 width: workLength === '' ? 240 : 290
-                            }}>{subitem.replace(/\./ig, ',')}</Text>
+                            }}>{numberFormat(item)}</Text>
                         </View>
                     }
                 </View>
-            )))}
-        </View>
-    );
+            )
+        }
+
+        for (let i = 0; i < choices.length; i++) {
+            choicesResult.push(
+                <View key={i}>
+                    {!detailsChoicesToggles[i] ?
+                        <TouchableOpacity 
+                            onPress={() => toggleDetailsChoice(i)}
+                        >
+                            {choices[i].split('`').map((subitem, j) => (
+                                renderChoiceRow(subitem, i , j)
+                            ))}
+                        </TouchableOpacity>
+                    :
+                        <TouchableOpacity
+                            onPress={() => toggleDetailsChoice(i)}
+                        >
+                            {detailsChoices[i] && detailsChoices[i].split('`').map((subitem, j) => (
+                                renderChoiceRow(subitem, i , j)
+                            ))}
+                        </TouchableOpacity>
+                    }
+                </View>
+            );
+        }
+
+        return (
+            <View style={{
+                ...styles.subcontainer,
+                paddingTop: 20,
+            }}>
+                {choices.length ?
+                    <Text style={{
+                        ...styles.textColor,
+                        fontWeight: 'bold',
+                        fontSize: 20
+                    }}>Choix</Text>
+                :
+                    null
+                } 
+                {choicesResult.map((item, i) => item)}
+            </View>
+        );
+    };
 
     return (
         <SafeAreaView style={styles.container}>

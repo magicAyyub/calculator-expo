@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Appearance, TextInput, Keyboard } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
+import { numberFormat } from '../utils';
+
 function DataEntriesScreen() {
   const [steelPrice, setSteelPrice] = useState('');
 
@@ -10,7 +12,7 @@ function DataEntriesScreen() {
       const storedSteelPrice = await SecureStore.getItemAsync('steelPrice');
 
       if (storedSteelPrice) {
-        setSteelPrice(storedSteelPrice.replace(/\./ig, ','));
+        setSteelPrice(numberFormat(storedSteelPrice));
       }
     }
 
