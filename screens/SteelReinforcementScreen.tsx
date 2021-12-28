@@ -1,5 +1,5 @@
 import React, { MutableRefObject, useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, SafeAreaView, Dimensions, Appearance, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ScrollView, SafeAreaView, Dimensions, Appearance, TouchableOpacity, Keyboard } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 import { BarsCalculationResult, BarsObject } from '../types/SteelReinforcement';
@@ -431,6 +431,7 @@ function SteelReinforcementScreen() {
     }
 
     function toggleDetailsChoice(index: number) {
+        Keyboard.dismiss();
         let newDetailsChoicesToggles = [...detailsChoicesToggles];
         newDetailsChoicesToggles[index] = !detailsChoicesToggles[index];
         setDetailsChoicesToggles(newDetailsChoicesToggles);
@@ -481,25 +482,25 @@ function SteelReinforcementScreen() {
 
         for (let i = 0; i < choices.length; i++) {
             choicesResult.push(
-                <View key={i}>
-                    {!detailsChoicesToggles[i] ?
-                        <TouchableOpacity 
-                            onPress={() => toggleDetailsChoice(i)}
-                        >
-                            {choices[i].split('`').map((subitem, j) => (
-                                renderChoiceRow(subitem, i , j)
-                            ))}
-                        </TouchableOpacity>
-                    :
-                        <TouchableOpacity
-                            onPress={() => toggleDetailsChoice(i)}
-                        >
-                            {detailsChoices[i] && detailsChoices[i].split('`').map((subitem, j) => (
-                                renderChoiceRow(subitem, i , j)
-                            ))}
-                        </TouchableOpacity>
-                    }
-                </View>
+                !detailsChoicesToggles[i] ? (
+                    <TouchableOpacity
+                        key={i}
+                        onPress={() => toggleDetailsChoice(i)}
+                    >
+                        {choices[i].split('`').map((subitem, j) => (
+                            renderChoiceRow(subitem, i , j)
+                        ))}
+                    </TouchableOpacity>
+                ):(
+                    <TouchableOpacity
+                        key={i}
+                        onPress={() => toggleDetailsChoice(i)}
+                    >
+                        {detailsChoices[i] && detailsChoices[i].split('`').map((subitem, j) => (
+                            renderChoiceRow(subitem, i , j)
+                        ))}
+                    </TouchableOpacity>
+                )
             );
         }
 
@@ -530,6 +531,7 @@ function SteelReinforcementScreen() {
                     width: screenWidth,
                     height: screenHeight
                 }}
+                keyboardShouldPersistTaps={'handled'}
             >
                 {renderForm()}
                 {renderResult()}
