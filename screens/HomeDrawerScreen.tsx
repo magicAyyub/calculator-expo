@@ -1,6 +1,5 @@
 import React from 'react';
-import { View, Pressable, Text, StyleSheet, Appearance, Button, Platform } from 'react-native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Appearance } from 'react-native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 
 import HomeScreen from './HomeScreen';
@@ -9,8 +8,6 @@ import DrawerToggleButton from '../components/DrawerToggleButton';
 
 const Drawer = createDrawerNavigator();
 const colorScheme = Appearance.getColorScheme();
-
-
 
 function HomeDrawerScreen() {
   return (
@@ -28,6 +25,12 @@ function HomeDrawerScreen() {
             tintColor={colorScheme === 'dark' ? 'white' : 'black'}
           />
         ),
+        drawerStyle: {
+          backgroundColor: colorScheme === 'dark' ? 'black' : 'white'
+        },
+        drawerActiveBackgroundColor: colorScheme === 'dark' ? 'grey' : 'black',
+        drawerActiveTintColor: colorScheme === 'dark' ? 'lightgrey' : 'black',
+        drawerInactiveTintColor: colorScheme === 'dark' ? 'lightgrey' : 'black'
       }}
     >
       <Drawer.Screen
@@ -45,23 +48,5 @@ function HomeDrawerScreen() {
     </Drawer.Navigator>
   );
 }
-
-const styles = StyleSheet.create({
-  title: Platform.select({
-    ios: {
-      fontSize: 17,
-      fontWeight: '600',
-    },
-    android: {
-      fontSize: 20,
-      fontFamily: 'sans-serif-medium',
-      fontWeight: 'normal',
-    },
-    default: {
-      fontSize: 18,
-      fontWeight: '500',
-    },
-  }),
-});
 
 export default HomeDrawerScreen;
