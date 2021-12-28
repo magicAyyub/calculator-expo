@@ -103,7 +103,7 @@ function SteelReinforcementScreen() {
 
         const tmpChoices: string[] = [];
 
-        function getFirstChoiceSameBars() {
+        function getFirstChoiceOneTypeOfBars() {
             for (const bar of bars) {
                 if (!isNaN(intMinBarDiameter) && bar.diameter < intMinBarDiameter) {
                     continue;
@@ -149,7 +149,7 @@ function SteelReinforcementScreen() {
             return '';
         }
 
-        const firstChoiceSameBars = getFirstChoiceSameBars();
+        const firstChoiceSameBars = getFirstChoiceOneTypeOfBars();
         tmpChoices.push(firstChoiceSameBars);
 
         if (intBedsCount === 1) {
@@ -266,7 +266,7 @@ function SteelReinforcementScreen() {
             secondChoiceText += `Total : ${result.total.sections.toFixed(3)} cm²`;
 
             if (totalBarsWeight > 0) {
-                secondChoiceText += '|';
+                secondChoiceText += '`';
 
                 if (totalBarsWeight > 1000) {
                     secondChoiceText += `            ${totalBarsWeight / 1000} t`;
@@ -423,12 +423,11 @@ function SteelReinforcementScreen() {
                             </Text>
                             <Text style={{
                                 ...styles.textColor,
-                                height: 20,
                                 marginTop: 20,
                                 marginLeft: 12,
                                 paddingLeft: 10,
-                                width: workLength === '' ? 210 : 290
-                            }}>{subitem}</Text>
+                                width: workLength === '' ? 230 : 290
+                            }}>{subitem.replace(/\./ig, ',')}</Text>
                         </View>
                     :
                         <View style={{
@@ -437,10 +436,9 @@ function SteelReinforcementScreen() {
                             <View style={{ width: 130 }}/>
                             <Text style={{
                                 ...styles.textColor,
-                                height: 20,
                                 marginLeft: 12,
                                 paddingLeft: 10,
-                                width: workLength === '' ? 210 : 290
+                                width: workLength === '' ? 230 : 290
                             }}>{subitem.replace(/\./ig, ',')}</Text>
                         </View>
                     }
