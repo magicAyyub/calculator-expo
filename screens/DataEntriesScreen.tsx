@@ -7,10 +7,10 @@ function DataEntriesScreen() {
 
   useEffect(() => {
     async function setStoredSteelPrice() {
-      let storedSteelPrice = await SecureStore.getItemAsync('steelPrice');
+      const storedSteelPrice = await SecureStore.getItemAsync('steelPrice');
 
       if (storedSteelPrice) {
-        setSteelPrice(storedSteelPrice);
+        setSteelPrice(storedSteelPrice.replace(/\./ig, ','));
       }
     }
 
@@ -19,7 +19,7 @@ function DataEntriesScreen() {
 
   useEffect(() => {
     async function storeSteelPrice() {
-      await SecureStore.setItemAsync('steelPrice', steelPrice);
+      await SecureStore.setItemAsync('steelPrice', steelPrice.replace(/,/ig, '.'));
     }
 
     storeSteelPrice();

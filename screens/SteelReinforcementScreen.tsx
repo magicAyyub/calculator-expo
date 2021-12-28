@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, ScrollView, SafeAreaView, Dimensions, Appearance } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 
 type BarData = {
     diameter: number; // mm
@@ -81,6 +82,26 @@ const bars: BarsDataArray = [
 const screenWidth = Dimensions.get('window').width;
 const screenHeight = Dimensions.get('window').height;
 
+async function getStoredSteelPrice() {
+    const storedSteelPrice = await SecureStore.getItemAsync('steelPrice');
+
+    if (storedSteelPrice) {
+        return parseFloat(storedSteelPrice);
+    }
+
+    return null;
+}
+
+function addSpaces(spacesCount: number) {
+    let spaces = '';
+
+    for (let i = 0; i < spacesCount; i++) {
+        spaces += ' ';
+    }
+
+    return spaces;
+}
+
 function SteelReinforcementScreen() {
     const [steelSectionValue, onChangeSteelSectionValue] = useState('');
     const [bedsCount, onChangeBedsCount] = useState('');
@@ -88,204 +109,233 @@ function SteelReinforcementScreen() {
     const [workLength, onChangeWorkLength] = useState('');
     const [minBarDiameter, onChangeMinBarDiameter] = useState('');
     const [choices, setChoices] = useState<string[]>([]);
-    
+   
     useEffect(() => {
-        if (steelSectionValue === '' || bedsCount === '' || columnsCount === '') {
-            setChoices([]);
-            return;
-        }
-
-        const floatSteelSection = parseFloat(steelSectionValue);
-        const intBedsCount = parseInt(bedsCount);
-        const intColumnsCount = parseInt(columnsCount);
-        const intWorkLength = parseInt(workLength);
-        const intMinBarDiameter = parseInt(minBarDiameter);
-
-        const tmpChoices: string[] = [];
-
-        function getFirstChoiceOneTypeOfBars() {
-            for (const bar of bars) {
-                if (!isNaN(intMinBarDiameter) && bar.diameter < intMinBarDiameter) {
-                    continue;
-                }
-
-                const sectionsSameBars = bar.section * intBedsCount * intColumnsCount;
+        (async () => {
+            if (steelSectionValue === '' || bedsCount === '' || columnsCount === '') {
+                setChoices([]);
+                return;
+            }
     
-                if (sectionsSameBars < floatSteelSection) {
-                    continue;
-                }
-
-                const barsCount = intBedsCount * intColumnsCount;
-                
-                let firstChoiceText = (
-                    `${barsCount} barres de ${bar.diameter} mm|`+
-                    `(${barsCount} x ${bar.section} = ${sectionsSameBars.toFixed(3)} cm²)`
-                );
-
-                let barsWeight = NaN;
-
-                if (!isNaN(intWorkLength)) {
-                    barsWeight = intWorkLength * barsCount * bar.weight;
-                }
-
-                if (!isNaN(barsWeight)) {
-                    firstChoiceText += '|';
-                    firstChoiceText += (
-                        `(${intWorkLength} m x ${barsCount} barres x ${bar.weight} kg = `
-                    );
-
-                    if (barsWeight > 1000) {
-                        firstChoiceText += `${barsWeight / 1000} t)`;
-                        return firstChoiceText;
-                    }
-
-                    firstChoiceText += `${barsWeight} kg)`;
-                    return firstChoiceText;
-                }
-
-                return firstChoiceText;
-            }
-
-            return '';
-        }
-
-        const firstChoiceSameBars = getFirstChoiceOneTypeOfBars();
-        tmpChoices.push(firstChoiceSameBars);
-
-        if (intBedsCount === 1) {
-            if (firstChoiceSameBars === '') {
-                return;
-            }
-
-            setChoices(tmpChoices);
-            return;
-        }
-
-        function checkSameBars(resultBars: BarsDataObject) {
-            let tmpCurrentValuesObj = null;
-            let tmpCurrentValuesObjSame = true;
-            let first = true;
-
-            for (const values of Object.values(resultBars)) {
-                if (first) {
-                    tmpCurrentValuesObj = values;
-                    first = false;
-                }
-
-                tmpCurrentValuesObjSame = tmpCurrentValuesObjSame
-                                          && JSON.stringify(values) === JSON.stringify(tmpCurrentValuesObj);
-                
-            }
-
-            return tmpCurrentValuesObjSame;
-        }
-
-        function loopChoices(
-            prevSections: number,
-            remainingBedsCount: number,
-            current: BarsDataObject,
-            result: BarsDataResult
-        ) {
-            if (remainingBedsCount === 0) {
-                if (prevSections < floatSteelSection) {
-                    return;
-                }
-
-                if (prevSections < result.total.sections) {
-                    Object.assign(result.bars, current);
-                    result.total.sections = prevSections;
-                }
-
-                return;
-            }
-
-            for (const bar of bars) {
-                if (!isNaN(intMinBarDiameter) && bar.diameter < intMinBarDiameter) {
-                    continue;
-                }
-
-                if (bar.section > floatSteelSection) {
-                    continue;
-                }
-
-                current[remainingBedsCount] = bar;
-
-                const currentSections = bar.section * intColumnsCount + prevSections;
-        
-                loopChoices(currentSections, remainingBedsCount - 1, current, result);
-            }
-        }
-
-        function getSecondChoiceDifferentBars() {
-            const result: BarsDataResult = { bars: {}, total: { sections: Infinity }};
-
-            loopChoices(0, intBedsCount, {}, result);
-
-            if (checkSameBars(result.bars)) {
-                return '';
-            }
-
-            let secondChoiceText = '';
-            let totalBarsWeight = 0;
-
-            for (const bar of Object.values(result.bars)) {
-                secondChoiceText += (
-                    `${intColumnsCount} barres de ${bar.diameter} mm = `
-                    + `${(intColumnsCount * bar.section).toFixed(3)} cm²|`
-                );
-
-                // TODO: add details calculation
-                // secondChoiceText += (
-                //     `(${intColumnsCount} x ${bar.section} = ${(intColumnsCount * bar.section).toFixed(3)} cm²)|`
-                // )
-
-                let barsWeight = NaN;
-
-                if (!isNaN(intWorkLength)) {
-                    barsWeight = intWorkLength * intColumnsCount * bar.weight;
-                    totalBarsWeight += barsWeight;
-                }
-
-                if (!isNaN(barsWeight)) {
-                    secondChoiceText += (
-                        `(${intWorkLength} m x ${intColumnsCount} barres x ${bar.weight} kg = `
-                    );
-
-                    if (barsWeight > 1000) {
-                        secondChoiceText += `${barsWeight / 1000} t)`;
-                        secondChoiceText += '|';
+            const floatSteelSection = parseFloat(steelSectionValue);
+            const intBedsCount = parseInt(bedsCount);
+            const intColumnsCount = parseInt(columnsCount);
+            const intWorkLength = parseInt(workLength);
+            const intMinBarDiameter = parseInt(minBarDiameter);
+    
+            const tmpChoices: string[] = [];
+    
+            async function getFirstChoiceOneTypeOfBars() {
+                for (const bar of bars) {
+                    if (!isNaN(intMinBarDiameter) && bar.diameter < intMinBarDiameter) {
                         continue;
                     }
+    
+                    const sectionsSameBars = bar.section * intBedsCount * intColumnsCount;
+        
+                    if (sectionsSameBars < floatSteelSection) {
+                        continue;
+                    }
+    
+                    const barsCount = intBedsCount * intColumnsCount;
+                    
+                    let firstChoiceText = (
+                        `${barsCount} barres de ${bar.diameter} mm = ${sectionsSameBars.toFixed(3)} cm²`
+                    );
+    
+                    // let firstChoiceText = (
+                    //     `${barsCount} barres de ${bar.diameter} mm|`+
+                    //     `(${barsCount} x ${bar.section} = ${sectionsSameBars.toFixed(3)} cm²)`
+                    // );
+    
+                    let barsWeight = NaN;
+    
+                    if (!isNaN(intWorkLength)) {
+                        barsWeight = intWorkLength * barsCount * bar.weight;
+                    }
+    
+                    if (!isNaN(barsWeight)) {
+                        firstChoiceText += '`';
+                        // firstChoiceText += (
+                        //     `(${intWorkLength} m x ${barsCount} barres x ${bar.weight} kg = `
+                        // );
 
-                    secondChoiceText += `${barsWeight} kg)`;
-                    secondChoiceText += '|';
-                }
-            }
+                        if (barsWeight > 1000) {
+                            firstChoiceText += `${(barsWeight / 1000).toFixed(3)} t`;
+                        } else {
+                            firstChoiceText += `${barsWeight.toFixed(3)} kg`;
+                        }                        
 
-            secondChoiceText.substring(0, secondChoiceText.length - 1);
-            secondChoiceText += `Total : ${result.total.sections.toFixed(3)} cm²`;
+                        const storedSteelPrice = await getStoredSteelPrice();
 
-            if (totalBarsWeight > 0) {
-                secondChoiceText += '`';
+                        if (storedSteelPrice) {
+                            firstChoiceText += ' | ';
+                            firstChoiceText += (
+                                `${(barsWeight / 1000 * storedSteelPrice).toFixed(2)}€`
+                            );
+                        }
 
-                if (totalBarsWeight > 1000) {
-                    secondChoiceText += `            ${totalBarsWeight / 1000} t`;
-                    return secondChoiceText;
+                        return firstChoiceText;
+                    }
+    
+                    return firstChoiceText;
                 }
     
-                secondChoiceText += `            ${totalBarsWeight} kg`;
+                return '';
             }
+    
+            const firstChoiceSameBars = await getFirstChoiceOneTypeOfBars();
+            tmpChoices.push(firstChoiceSameBars);
+    
+            if (intBedsCount === 1) {
+                if (firstChoiceSameBars === '') {
+                    return;
+                }
+    
+                setChoices(tmpChoices);
+                return;
+            }
+    
+            function checkSameBars(resultBars: BarsDataObject) {
+                let tmpCurrentValuesObj = null;
+                let tmpCurrentValuesObjSame = true;
+                let first = true;
+    
+                for (const values of Object.values(resultBars)) {
+                    if (first) {
+                        tmpCurrentValuesObj = values;
+                        first = false;
+                    }
+    
+                    tmpCurrentValuesObjSame = tmpCurrentValuesObjSame
+                                              && JSON.stringify(values) === JSON.stringify(tmpCurrentValuesObj);
+                    
+                }
+    
+                return tmpCurrentValuesObjSame;
+            }
+    
+            function loopChoices(
+                prevSections: number,
+                remainingBedsCount: number,
+                current: BarsDataObject,
+                result: BarsDataResult
+            ) {
+                if (remainingBedsCount === 0) {
+                    if (prevSections < floatSteelSection) {
+                        return;
+                    }
+    
+                    if (prevSections < result.total.sections) {
+                        Object.assign(result.bars, current);
+                        result.total.sections = prevSections;
+                    }
+    
+                    return;
+                }
+    
+                for (const bar of bars) {
+                    if (!isNaN(intMinBarDiameter) && bar.diameter < intMinBarDiameter) {
+                        continue;
+                    }
+    
+                    if (bar.section > floatSteelSection) {
+                        continue;
+                    }
+    
+                    current[remainingBedsCount] = bar;
+    
+                    const currentSections = bar.section * intColumnsCount + prevSections;
             
-            return secondChoiceText;
-        }
+                    loopChoices(currentSections, remainingBedsCount - 1, current, result);
+                }
+            }
+    
+            async function getSecondChoiceDifferentBars() {
+                const result: BarsDataResult = { bars: {}, total: { sections: Infinity }};
+    
+                loopChoices(0, intBedsCount, {}, result);
+    
+                if (checkSameBars(result.bars)) {
+                    return '';
+                }
 
-        const secondChoiceDifferentBars = getSecondChoiceDifferentBars();
-        if (secondChoiceDifferentBars !== '') {
-            tmpChoices.push(secondChoiceDifferentBars);
-        }
+                const storedSteelPrice = await getStoredSteelPrice();
+                let secondChoiceText = '';
+                let totalBarsWeight = 0;
+    
+                for (const bar of Object.values(result.bars)) {
+                    secondChoiceText += (
+                        `${intColumnsCount} barres de ${bar.diameter} mm = `
+                        + `${(intColumnsCount * bar.section).toFixed(3)} cm²\``
+                    );
+    
+                    // TODO: add details calculation
+                    // secondChoiceText += (
+                    //     `(${intColumnsCount} x ${bar.section} = ${(intColumnsCount * bar.section).toFixed(3)} cm²)|`
+                    // )
+    
+                    let barsWeight = NaN;
+    
+                    if (!isNaN(intWorkLength)) {
+                        barsWeight = intWorkLength * intColumnsCount * bar.weight;
+                        totalBarsWeight += barsWeight;
+                    }
+    
+                    if (!isNaN(barsWeight)) {
+                        // secondChoiceText += (
+                        //     `(${intWorkLength} m x ${intColumnsCount} barres x ${bar.weight} kg = `
+                        // );
+    
+                        if (barsWeight > 1000) {
+                            secondChoiceText += `${(barsWeight / 1000).toFixed(3)} t`;
+                        } else {
+                            secondChoiceText += `${barsWeight.toFixed(3)} kg`;
+                        }                        
 
-        setChoices(tmpChoices);
+                        if (storedSteelPrice) {
+                            secondChoiceText += ' | ';
+                            secondChoiceText += (
+                                `${(barsWeight / 1000 * storedSteelPrice).toFixed(2)}€`
+                            );
+                        }
 
+                        secondChoiceText += '`';
+                    }
+                }
+    
+                secondChoiceText.substring(0, secondChoiceText.length - 1);
+                secondChoiceText += `Total : ${result.total.sections.toFixed(3)} cm²`;
+    
+                if (totalBarsWeight > 0) {
+                    secondChoiceText += '`';
+                    secondChoiceText += addSpaces(12);
+    
+                    if (totalBarsWeight > 1000) {
+                        secondChoiceText += `${(totalBarsWeight / 1000).toFixed(3)} t`;
+                    } else {
+                        secondChoiceText += `${totalBarsWeight.toFixed(3)} kg`;
+                    }
+
+                    if (storedSteelPrice) {
+                        secondChoiceText += '`';
+                        secondChoiceText += addSpaces(12);
+                        secondChoiceText += (
+                            `${(totalBarsWeight / 1000 * storedSteelPrice).toFixed(2)}€`
+                        );
+                    }
+                }
+                
+                return secondChoiceText;
+            }
+    
+            const secondChoiceDifferentBars = await getSecondChoiceDifferentBars();
+            if (secondChoiceDifferentBars !== '') {
+                tmpChoices.push(secondChoiceDifferentBars);
+            }
+    
+            setChoices(tmpChoices);
+        })();
     }, [steelSectionValue, bedsCount, columnsCount, workLength, minBarDiameter]);
 
     const renderForm = () => (
@@ -407,7 +457,7 @@ function SteelReinforcementScreen() {
             :
                 null
             } 
-            {choices.map((item, i) => item.split('|').map((subitem, j) => (
+            {choices.map((item, i) => item.split('`').map((subitem, j) => (
                 <View key={j}>
                     { j === 0 ?
                         <View style={{
@@ -426,7 +476,7 @@ function SteelReinforcementScreen() {
                                 marginTop: 20,
                                 marginLeft: 12,
                                 paddingLeft: 10,
-                                width: workLength === '' ? 230 : 290
+                                width: workLength === '' ? 240 : 290
                             }}>{subitem.replace(/\./ig, ',')}</Text>
                         </View>
                     :
@@ -438,7 +488,7 @@ function SteelReinforcementScreen() {
                                 ...styles.textColor,
                                 marginLeft: 12,
                                 paddingLeft: 10,
-                                width: workLength === '' ? 230 : 290
+                                width: workLength === '' ? 240 : 290
                             }}>{subitem.replace(/\./ig, ',')}</Text>
                         </View>
                     }
