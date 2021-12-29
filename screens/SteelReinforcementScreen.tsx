@@ -32,13 +32,17 @@ function addSpaces(spacesCount: number) {
 function SteelReinforcementScreen() {
     const [steelSectionValue, onChangeSteelSectionValue] = useState('');
     const [bedsCount, onChangeBedsCount] = useState('');
+    const bedsCountInputRef = useRef<TextInput>(null);
     const [columnsCount, onChangeColumnsCount] = useState('');
+    const columnsCountInputRef = useRef<TextInput>(null);
     const [workLength, onChangeWorkLength] = useState('');
+    const workLengthInputRef = useRef<TextInput>(null);
     const [minBarDiameter, onChangeMinBarDiameter] = useState('');
+    const minBarDiameterInputRef = useRef<TextInput>(null);
     const [choices, setChoices] = useState<string[]>([]);
     const [detailsChoices, setDetailsChoices] = useState<string[]>([]);
     const [detailsChoicesToggles, setDetailsChoicesToggles] = useState([false, false]);
-   
+
     useEffect(() => {
         (async () => {
             if (steelSectionValue === '' || bedsCount === '' || columnsCount === '') {
@@ -351,6 +355,9 @@ function SteelReinforcementScreen() {
                         value={steelSectionValue}
                         placeholder="Section d'aciers"
                         placeholderTextColor={colorScheme === 'dark' ? 'grey' : 'lightgrey'}
+                        autoFocus={true}
+                        blurOnSubmit={false}
+                        onSubmitEditing={() => bedsCountInputRef.current?.focus()}
                     />
                     <Text style={{ ...styles.textColor, width: 40, marginTop: 21}}>cm²</Text>
                 </View>
@@ -363,12 +370,15 @@ function SteelReinforcementScreen() {
                         ...styles.formSingleLineText
                     }}>Nb de lits</Text>
                     <TextInput
+                        ref={bedsCountInputRef}
                         style={styles.input}
                         keyboardType='number-pad'
                         onChangeText={onChangeBedsCount}
                         value={bedsCount}
                         placeholder='Nb de lits'
                         placeholderTextColor={colorScheme === 'dark' ? 'grey' : 'lightgrey'}
+                        blurOnSubmit={false}
+                        onSubmitEditing={() => columnsCountInputRef.current?.focus()}
                     />
                     <View style={{ width:40 }}></View>
                 </View>
@@ -381,12 +391,15 @@ function SteelReinforcementScreen() {
                         ...styles.formSingleLineText
                     }}>Nb de colonnes</Text>
                     <TextInput
+                        ref={columnsCountInputRef}
                         style={styles.input}
                         keyboardType='number-pad'
                         onChangeText={onChangeColumnsCount}
                         value={columnsCount}
                         placeholder='Nb de colonnes'
                         placeholderTextColor={colorScheme === 'dark' ? 'grey' : 'lightgrey'}
+                        blurOnSubmit={false}
+                        onSubmitEditing={() => workLengthInputRef.current?.focus()}
                     />
                     <View style={{ width:40 }}></View>
                 </View>
@@ -399,12 +412,15 @@ function SteelReinforcementScreen() {
                         ...styles.formTwoLinesText
                     }}>Longueur de l'ouvrage</Text>
                     <TextInput
+                        ref={workLengthInputRef}
                         style={styles.input}
                         keyboardType='number-pad'
                         onChangeText={onChangeWorkLength}
                         value={workLength}
                         placeholder="Longueur de l'ouvrage"
                         placeholderTextColor={colorScheme === 'dark' ? 'grey' : 'lightgrey'}
+                        blurOnSubmit={false}
+                        onSubmitEditing={() => minBarDiameterInputRef.current?.focus()}
                     />
                     <Text style={{ ...styles.textColor, width:40, marginTop: 21 }}>m</Text>
                 </View>
@@ -417,6 +433,7 @@ function SteelReinforcementScreen() {
                         ...styles.formTwoLinesText
                     }}>Diamètre minimum</Text>
                     <TextInput
+                        ref={minBarDiameterInputRef}
                         style={styles.input}
                         keyboardType='number-pad'
                         onChangeText={onChangeMinBarDiameter}
