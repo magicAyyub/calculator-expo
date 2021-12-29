@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, View, Appearance } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import { useRef } from 'react';
 
 const colorScheme = Appearance.getColorScheme();
 
 export function VATPriceScreen() {
     const [priceWithoutVAT, onChangePriceWithoutVAT] = useState('');
     const [VAT, onChangeVAT] = useState('');
+    const VATInputRef = useRef<TextInput>(null);
     const [VATPrice, setVATPrice] = useState(0);
     const [discountValue, onChangeDiscountValue] = useState('');
+    const discountValueInputRef = useRef<TextInput>(null);
     const [selectedDiscountType, setSelectedDiscountType] = useState('discountRate');
     const [discountedPrice, setDiscountedPrice] = useState(0);
     
@@ -69,9 +72,13 @@ export function VATPriceScreen() {
                     value={priceWithoutVAT}
                     placeholder='Prix HT'
                     placeholderTextColor={colorScheme === 'dark' ? 'grey' : 'lightgrey'}
+                    autoFocus={true}
+                    blurOnSubmit={false}
+                    onSubmitEditing={() => VATInputRef.current?.focus()}
                 />
                 <Text style={styles.textColor}>Taux de TVA (en %) :</Text>
                 <TextInput
+                    ref={VATInputRef}
                     style={{
                         ...styles.input,
                     }}
@@ -80,6 +87,8 @@ export function VATPriceScreen() {
                     value={VAT}
                     placeholder='Taux de TVA'
                     placeholderTextColor={colorScheme === 'dark' ? 'grey' : 'lightgrey'}
+                    blurOnSubmit={false}
+                    onSubmitEditing={() => discountValueInputRef.current?.focus()}
                 />
                 <Text style={{
                     ...styles.textColor,
@@ -121,6 +130,7 @@ export function VATPriceScreen() {
                     </Picker>
                 </View>
                 <TextInput
+                    ref={discountValueInputRef}
                     style={styles.input}
                     keyboardType='numeric'
                     onChangeText={onChangeDiscountValue}
